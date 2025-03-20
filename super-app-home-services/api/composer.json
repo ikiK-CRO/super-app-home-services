@@ -1,0 +1,30 @@
+{
+    "name": "super-app/home-services-api",
+    "description": "API for Super App for Home Services - Croatia",
+    "type": "project",
+    "require": {
+        "php": "^8.1",
+        "slim/slim": "^4.11",
+        "slim/psr7": "^1.6",
+        "php-di/php-di": "^7.0",
+        "firebase/php-jwt": "^6.4",
+        "vlucas/phpdotenv": "^5.5",
+        "stripe/stripe-php": "^10.12",
+        "monolog/monolog": "^3.3",
+        "respect/validation": "^2.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    },
+    "scripts": {
+        "start": "php -S localhost:8080 -t public"
+    },
+    "config": {
+        "process-timeout": 0
+    }
+} 
