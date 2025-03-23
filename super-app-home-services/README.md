@@ -33,6 +33,18 @@ The project is divided into two main parts:
 - Axios for API requests
 - AsyncStorage for local storage
 
+### Known Issues and Solutions
+
+#### iOS Shadow Rendering
+- React Native Paper components with shadows may cause warnings on iOS
+- Solution: Always provide a backgroundColor to components with shadows
+- Fix applied in BookingsScreen.tsx to prevent "inefficient shadow rendering" warnings
+
+#### Internationalization
+- All UI strings should use the translation system via t('key')
+- Hardcoded strings have been replaced with translation keys
+- Missing translations should be added to all language files (hr.ts, en.ts)
+
 ### Getting Started
 
 1. Clone this repository
@@ -70,6 +82,19 @@ The app supports both Croatian and English languages. Translations are managed i
 
 - `src/i18n/translations/hr.ts` (Croatian)
 - `src/i18n/translations/en.ts` (English)
+
+### Navigation
+
+The app uses React Navigation with the following structure:
+- MainTabParamList: Root navigation containing stacks
+- BookingsStackParamList: Navigation for booking-related screens
+- ServicesStackParamList: Navigation for services-related screens
+
+## Performance Optimization
+
+- FlatList components use memoization for renderItem
+- Screen components use useCallback and useMemo for complex operations
+- Platform-specific code for optimal UI rendering
 
 ## License
 

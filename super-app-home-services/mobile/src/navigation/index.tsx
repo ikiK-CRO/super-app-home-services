@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -50,8 +51,22 @@ export type ProfileStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
-  ServicesStack: undefined;
-  BookingsStack: undefined;
+  ServicesStack: {
+    screen?: string;
+    params?: {
+      serviceId?: string;
+      search?: string;
+      category?: string;
+      nearby?: boolean;
+    };
+  } | undefined;
+  BookingsStack: {
+    screen?: string;
+    params?: {
+      serviceId?: string;
+      bookingId?: string;
+    };
+  } | undefined;
   Profile: undefined;
 };
 
@@ -156,6 +171,11 @@ const MainNavigator = () => {
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
+        tabBarStyle: {
+          height: Platform.OS === 'ios' ? 88 : 60,
+          paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+          paddingTop: 5,
+        },
       })}
     >
       <MainTab.Screen 

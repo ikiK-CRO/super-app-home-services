@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { Text, Button, Divider, ActivityIndicator, Avatar, Card } from 'react-native-paper';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import { MainTabParamList } from '../../navigation';
+
+type ServiceDetailsNavigationProp = NativeStackNavigationProp<MainTabParamList>;
 
 // Define service and provider interfaces
 interface Service {
@@ -38,7 +41,7 @@ interface Review {
 
 const ServiceDetailsScreen = () => {
   const { t } = useI18n();
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const navigation = useNavigation<ServiceDetailsNavigationProp>();
   const route = useRoute<RouteProp<any, 'ServiceDetails'>>();
   
   const serviceId = route.params?.serviceId;
@@ -89,20 +92,22 @@ const ServiceDetailsScreen = () => {
   
   useEffect(() => {
     // Simulate API call to get service details
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setService(mockService);
       setLoading(false);
     }, 800);
-  }, [serviceId]);
+    
+    return () => clearTimeout(timer);
+  }, [serviceId, mockService]);
   
-  const handleBooking = () => {
-    navigation.navigate('Bookings', { 
+  const handleBooking = useCallback(() => {
+    navigation.navigate('BookingsStack', { 
       screen: 'CreateBooking', 
       params: { serviceId: service?.id } 
     });
-  };
+  }, [navigation, service]);
   
-  const renderStars = (rating: number) => {
+  const renderStars = useCallback((rating: number) => {
     return (
       <View style={styles.starsContainer}>
         {[1, 2, 3, 4, 5].map((star) => (
@@ -117,7 +122,7 @@ const ServiceDetailsScreen = () => {
         <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
       </View>
     );
-  };
+  }, []);
   
   if (loading || !service) {
     return (
@@ -272,6 +277,7 @@ const styles = StyleSheet.create({
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 4,
   },
   infoText: {
     marginLeft: 8,
@@ -338,9 +344,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
     backgroundColor: '#344955',
     borderRadius: 8,
+    height: 48,
   },
   bookButtonContent: {
     paddingVertical: 8,
+    height: 48,
   },
 });
 

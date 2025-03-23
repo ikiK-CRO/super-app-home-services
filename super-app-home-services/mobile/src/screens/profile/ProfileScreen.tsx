@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
 import { Text, Button, Avatar, Card, Switch, Divider } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useI18n } from '../../i18n';
 
 interface MenuItem {
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle?: string;
   hasSwitch?: boolean;
@@ -23,9 +23,9 @@ const ProfileScreen = () => {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
-  };
+  }, [logout]);
   
   const menuItems: MenuItem[] = [
     {
@@ -82,14 +82,14 @@ const ProfileScreen = () => {
     }
   ];
   
-  const renderMenuItem = (item: MenuItem) => (
+  const renderMenuItem = useCallback((item: MenuItem) => (
     <TouchableOpacity
       style={styles.menuItem}
       onPress={item.onPress}
       key={item.title}
     >
       <View style={styles.menuItemLeft}>
-        <Ionicons name={item.icon as any} size={24} color="#344955" style={styles.menuIcon} />
+        <Ionicons name={item.icon} size={24} color="#344955" style={styles.menuIcon} />
         <View style={styles.menuTextContainer}>
           <Text variant="titleMedium">{item.title}</Text>
           {item.subtitle && <Text variant="bodySmall" style={styles.subtitle}>{item.subtitle}</Text>}
@@ -114,10 +114,13 @@ const ProfileScreen = () => {
         )}
       </View>
     </TouchableOpacity>
-  );
+  ), [notifications, darkMode, t]);
   
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+    >
       <View style={styles.header}>
         <Avatar.Image 
           source={{ uri: 'https://images.unsplash.com/photo-1548142813-c348350df52b?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80' }} 
@@ -177,7 +180,9 @@ const ProfileScreen = () => {
         mode="outlined" 
         onPress={handleLogout}
         style={styles.logoutButton}
-        icon="log-out-outline"
+        icon={({size, color}) => (
+          <Ionicons name="log-out-outline" size={size} color={color} />
+        )}
       >
         {t('logout')}
       </Button>
@@ -191,6 +196,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F2',
+  },
+  contentContainer: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
   },
   header: {
     flexDirection: 'row',

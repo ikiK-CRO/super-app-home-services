@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Text, Card, Button, Chip, Divider, ActivityIndicator } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import { BookingsStackParamList, MainTabParamList } from '../../navigation';
+
+type BookingsNavigationProp = NativeStackNavigationProp<BookingsStackParamList & MainTabParamList>;
 
 // Define booking type
 interface Booking {
@@ -21,27 +25,54 @@ interface Booking {
 
 const BookingsScreen = () => {
   const { t } = useI18n();
-  const navigation = useNavigation();
+  const navigation = useNavigation<BookingsNavigationProp>();
   
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<Booking[]>([]);
   
+  // Memoize nextSevenDays to prevent unnecessary recalculations
+  const nextSevenDays = useMemo(() => {
+    const days = [];
+    const today = new Date();
+    
+    // These should be localized in a real app
+    const dayNames = ['Ned', 'Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub'];
+    const monthNames = ['Sij', 'Velj', 'Ožu', 'Tra', 'Svi', 'Lip', 'Srp', 'Kol', 'Ruj', 'Lis', 'Stu', 'Pro'];
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      days.push({
+        day: date.getDate(),
+        dayName: dayNames[date.getDay()],
+        month: monthNames[date.getMonth()],
+        full: date
+      });
+    }
+    
+    return days;
+  }, []);
+
   useEffect(() => {
     // Simulate API call
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setBookings(mockBookings);
       setLoading(false);
     }, 800);
+    
+    return () => clearTimeout(timer); // Clean up the timer
   }, []);
   
   // Filter bookings based on active tab
-  const filteredBookings = bookings.filter(booking => {
-    const isUpcoming = ['pending', 'confirmed'].includes(booking.status);
-    return activeTab === 'upcoming' ? isUpcoming : !isUpcoming;
-  });
+  const filteredBookings = useMemo(() => {
+    return bookings.filter(booking => {
+      const isUpcoming = ['pending', 'confirmed'].includes(booking.status);
+      return activeTab === 'upcoming' ? isUpcoming : !isUpcoming;
+    });
+  }, [bookings, activeTab]);
   
-  const getStatusColor = (status: Booking['status']) => {
+  const getStatusColor = useCallback((status: Booking['status']) => {
     switch (status) {
       case 'pending':
         return '#FFA000'; // Amber
@@ -54,114 +85,120 @@ const BookingsScreen = () => {
       default:
         return '#757575'; // Grey
     }
-  };
+  }, []);
   
-  const getStatusText = (status: Booking['status']) => {
+  const getStatusText = useCallback((status: Booking['status']) => {
     return t(status);
-  };
+  }, [t]);
   
-  const renderBookingItem = ({ item }: { item: Booking }) => (
-    <Card style={styles.bookingCard}>
-      <Card.Cover source={{ uri: item.serviceImage }} style={styles.bookingImage} />
-      <Card.Content>
-        <View style={styles.statusContainer}>
-          <Chip 
-            style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}
-            textStyle={styles.statusText}
-          >
-            {getStatusText(item.status)}
-          </Chip>
-          <Text variant="bodySmall" style={styles.dateTime}>
-            {item.date} | {item.time}
-          </Text>
-        </View>
+  const renderBookingItem = useCallback(({ item }: { item: Booking }) => (
+    <View style={styles.cardWrapper}>
+      <Card style={styles.bookingCard}>
+        <Card.Cover source={{ uri: item.serviceImage }} style={styles.bookingImage} />
+        <Card.Content style={{ backgroundColor: '#FFFFFF' }}>
+          <View style={styles.statusContainer}>
+            <Chip 
+              style={[styles.statusChip, { backgroundColor: getStatusColor(item.status) }]}
+              textStyle={styles.statusText}
+            >
+              {getStatusText(item.status)}
+            </Chip>
+            <Text variant="bodySmall" style={styles.dateTime}>
+              {item.date} | {item.time}
+            </Text>
+          </View>
+          
+          <Text variant="titleMedium" style={styles.serviceName}>{item.serviceName}</Text>
+          <Text variant="bodyMedium" style={styles.providerName}>{item.providerName}</Text>
+          
+          <View style={styles.addressContainer}>
+            <Ionicons name="location-outline" size={16} color="#757575" />
+            <Text variant="bodySmall" style={styles.address} numberOfLines={1}>{item.address}</Text>
+          </View>
+          
+          <Text variant="titleMedium" style={styles.price}>{item.price}</Text>
+        </Card.Content>
         
-        <Text variant="titleMedium" style={styles.serviceName}>{item.serviceName}</Text>
-        <Text variant="bodyMedium" style={styles.providerName}>{item.providerName}</Text>
-        
-        <View style={styles.addressContainer}>
-          <Ionicons name="location-outline" size={16} color="#757575" />
-          <Text variant="bodySmall" style={styles.address} numberOfLines={1}>{item.address}</Text>
-        </View>
-        
-        <Text variant="titleMedium" style={styles.price}>{item.price}</Text>
-      </Card.Content>
-      
-      <Card.Actions style={styles.actionContainer}>
-        <Button 
-          mode="outlined"
-          onPress={() => navigation.navigate('BookingDetails', { bookingId: item.id })}
-          style={styles.detailsButton}
-        >
-          {t('booking_details')}
-        </Button>
-        
-        {item.status === 'pending' && (
+        <Card.Actions style={styles.actionContainer}>
           <Button 
-            mode="contained"
-            onPress={() => {}}
-            style={styles.actionButton}
+            mode="outlined"
+            onPress={() => navigation.navigate('BookingDetails', { bookingId: item.id })}
+            style={styles.detailsButton}
           >
-            {t('cancel')}
+            {t('booking_details')}
           </Button>
-        )}
-        
-        {item.status === 'confirmed' && (
-          <Button 
-            mode="contained"
-            onPress={() => {}}
-            style={styles.actionButton}
-          >
-            {t('track')}
-          </Button>
-        )}
-      </Card.Actions>
-    </Card>
-  );
+          
+          {item.status === 'pending' && (
+            <Button 
+              mode="contained"
+              onPress={() => {}}
+              style={styles.actionButton}
+            >
+              {t('cancel')}
+            </Button>
+          )}
+          
+          {item.status === 'confirmed' && (
+            <Button 
+              mode="contained"
+              onPress={() => {}}
+              style={styles.actionButton}
+            >
+              {t('track')}
+            </Button>
+          )}
+        </Card.Actions>
+      </Card>
+    </View>
+  ), [navigation, t, getStatusColor, getStatusText]);
   
-  const renderEmptyList = () => (
+  const bookingKeyExtractor = useCallback((item: Booking) => item.id, []);
+  
+  const renderEmptyList = useCallback(() => (
     <View style={styles.emptyContainer}>
       <Ionicons name="calendar-outline" size={64} color="#757575" />
       <Text variant="titleMedium" style={styles.emptyText}>
         {activeTab === 'upcoming' 
-          ? 'Nemate nadolazećih rezervacija'
-          : 'Nemate prethodnih rezervacija'}
+          ? t('no_upcoming_bookings')
+          : t('no_past_bookings')}
       </Text>
       <Button
         mode="contained"
-        onPress={() => navigation.navigate('Services')}
+        onPress={() => navigation.navigate('ServicesStack')}
         style={styles.browseButton}
       >
         {t('browse_services')}
       </Button>
     </View>
-  );
+  ), [activeTab, navigation, t]);
   
   // Calendar section - for future implementations
-  const renderCalendar = () => (
-    <View style={styles.calendarContainer}>
-      <Text variant="titleMedium" style={styles.calendarTitle}>{t('upcoming_dates')}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {nextSevenDays().map((date, index) => (
-          <TouchableOpacity key={index} style={styles.dateItem}>
-            <Text style={styles.dayName}>{date.dayName}</Text>
-            <View style={[
-              styles.dateCircle, 
-              index === 0 && styles.activeDateCircle
-            ]}>
-              <Text style={[
-                styles.dateNumber,
-                index === 0 && styles.activeDateNumber
+  const renderCalendar = useCallback(() => {
+    return (
+      <View style={styles.calendarContainer}>
+        <Text variant="titleMedium" style={styles.calendarTitle}>{t('upcoming_dates')}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {nextSevenDays.map((date: { day: number; dayName: string; month: string; full: Date }, index: number) => (
+            <TouchableOpacity key={index} style={styles.dateItem}>
+              <Text style={styles.dayName}>{date.dayName}</Text>
+              <View style={[
+                styles.dateCircle, 
+                index === 0 && styles.activeDateCircle
               ]}>
-                {date.day}
-              </Text>
-            </View>
-            <Text style={styles.monthName}>{date.month}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
+                <Text style={[
+                  styles.dateNumber,
+                  index === 0 && styles.activeDateNumber
+                ]}>
+                  {date.day}
+                </Text>
+              </View>
+              <Text style={styles.monthName}>{date.month}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }, [t, nextSevenDays]);
   
   if (loading) {
     return (
@@ -206,35 +243,19 @@ const BookingsScreen = () => {
         <FlatList
           data={filteredBookings}
           renderItem={renderBookingItem}
-          keyExtractor={item => item.id}
+          keyExtractor={bookingKeyExtractor}
           contentContainerStyle={styles.listContainer}
+          removeClippedSubviews={Platform.OS === 'android'}
+          initialNumToRender={4}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          style={{ backgroundColor: '#F2F2F2' }}
         />
       ) : (
         renderEmptyList()
       )}
     </View>
   );
-};
-
-// Helper function to generate next 7 days for calendar
-const nextSevenDays = () => {
-  const days = [];
-  const today = new Date();
-  const dayNames = ['Ned', 'Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub'];
-  const monthNames = ['Sij', 'Velj', 'Ožu', 'Tra', 'Svi', 'Lip', 'Srp', 'Kol', 'Ruj', 'Lis', 'Stu', 'Pro'];
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    days.push({
-      day: date.getDate(),
-      dayName: dayNames[date.getDay()],
-      month: monthNames[date.getMonth()],
-      full: date
-    });
-  }
-  
-  return days;
 };
 
 // Mock bookings data
@@ -298,20 +319,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F2F2F2',
   },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFF',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
+    ...(Platform.OS === 'android' ? {
+      elevation: 2,
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 1,
+    }),
   },
   tab: {
     flex: 1,
     paddingVertical: 16,
     alignItems: 'center',
+    backgroundColor: '#FFF',
   },
   activeTab: {
     borderBottomWidth: 2,
@@ -370,14 +396,27 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 80,
   },
-  bookingCard: {
+  cardWrapper: {
     marginBottom: 16,
-    elevation: 2,
     borderRadius: 8,
     overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  bookingCard: {
+    ...(Platform.OS === 'android' ? {
+      elevation: 2,
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    }),
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
   },
   bookingImage: {
     height: 120,
+    backgroundColor: '#F5F5F5',
   },
   statusContainer: {
     flexDirection: 'row',
@@ -386,11 +425,13 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   statusChip: {
-    height: 24,
+    height: 28,
+    paddingVertical: 4,
   },
   statusText: {
     color: '#FFFFFF',
     fontSize: 12,
+    marginVertical: 2,
   },
   dateTime: {
     color: '#757575',
@@ -421,6 +462,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
   },
   detailsButton: {
     borderColor: '#344955',
@@ -434,6 +476,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
+    backgroundColor: '#F2F2F2',
   },
   emptyText: {
     marginTop: 16,

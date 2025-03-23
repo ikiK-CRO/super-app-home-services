@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import { Text, Searchbar, Chip, Card, ActivityIndicator, Divider } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import { ServicesStackParamList } from '../../navigation';
+
+type ServicesNavigationProp = NativeStackNavigationProp<ServicesStackParamList>;
 
 // Define service interface
 interface Service {
@@ -19,7 +22,7 @@ interface Service {
 
 const ServicesScreen = () => {
   const { t } = useI18n();
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const navigation = useNavigation<ServicesNavigationProp>();
   const route = useRoute<RouteProp<any, 'Services'>>();
   
   // Extract params
@@ -123,17 +126,19 @@ const ServicesScreen = () => {
   
   useEffect(() => {
     // Simulate API call
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setServices(mockServices);
       setLoading(false);
     }, 800);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     filterServices();
   }, [searchQuery, selectedCategory, services]);
   
-  const filterServices = () => {
+  const filterServices = useCallback(() => {
     let filtered = [...services];
     
     // Filter by category if selected
@@ -159,17 +164,21 @@ const ServicesScreen = () => {
     }
     
     setFilteredServices(filtered);
-  };
+  }, [services, selectedCategory, searchQuery, nearbyParam]);
   
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     filterServices();
-  };
+  }, [filterServices]);
   
-  const handleCategorySelect = (categoryId: string) => {
+  const handleCategorySelect = useCallback((categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? '' : categoryId);
-  };
+  }, [selectedCategory]);
   
-  const renderServiceItem = ({ item }: { item: Service }) => (
+  const serviceKeyExtractor = useCallback((item: Service) => item.id, []);
+  
+  const categoryKeyExtractor = useCallback((item: { id: string; name: string }) => item.id, []);
+
+  const renderServiceItem = useCallback(({ item }: { item: Service }) => (
     <TouchableOpacity 
       style={styles.serviceCard}
       onPress={() => navigation.navigate('ServiceDetails', { serviceId: item.id })}
@@ -192,7 +201,24 @@ const ServicesScreen = () => {
         </Card.Content>
       </Card>
     </TouchableOpacity>
-  );
+  ), [navigation, categories]);
+
+  const renderCategoryItem = useCallback(({ item }: { item: { id: string; name: string } }) => (
+    <Chip
+      selected={selectedCategory === item.id}
+      onPress={() => handleCategorySelect(item.id)}
+      style={[
+        styles.categoryChip, 
+        selectedCategory === item.id && styles.selectedCategoryChip
+      ]}
+      textStyle={[
+        styles.categoryChipText,
+        selectedCategory === item.id && styles.selectedCategoryChipText
+      ]}
+    >
+      {item.name}
+    </Chip>
+  ), [selectedCategory, handleCategorySelect]);
   
   if (loading) {
     return (
@@ -213,57 +239,52 @@ const ServicesScreen = () => {
         style={styles.searchBar}
       />
       
-      {/* Categories */}
-      <FlatList
-        data={categories}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.categoriesContainer}
-        renderItem={({ item }) => (
-          <Chip
-            selected={selectedCategory === item.id}
-            onPress={() => handleCategorySelect(item.id)}
-            style={[
-              styles.categoryChip, 
-              selectedCategory === item.id && styles.selectedCategoryChip
-            ]}
-            textStyle={[
-              styles.categoryChipText,
-              selectedCategory === item.id && styles.selectedCategoryChipText
-            ]}
-          >
-            {item.name}
-          </Chip>
-        )}
-      />
-      
-      <Divider style={styles.divider} />
-      
-      {/* Results Count */}
-      <View style={styles.resultsCountContainer}>
-        <Text variant="bodyMedium">
-          {filteredServices.length} {t('services')}
-          {selectedCategory && ` - ${categories.find(cat => cat.id === selectedCategory)?.name}`}
-          {searchQuery && ` - "${searchQuery}"`}
-        </Text>
-      </View>
-      
-      {/* Services List */}
-      {filteredServices.length > 0 ? (
-        <FlatList
-          data={filteredServices}
-          renderItem={renderServiceItem}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.servicesListContainer}
-        />
-      ) : (
-        <View style={styles.noResultsContainer}>
-          <Ionicons name="search-outline" size={48} color="#757575" />
-          <Text style={styles.noResultsText}>{t('no_results_found')}</Text>
+      <View style={styles.contentContainer}>
+        {/* Categories */}
+        <View style={styles.categorySection}>
+          <FlatList
+            data={categories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={categoryKeyExtractor}
+            contentContainerStyle={styles.categoriesContainer}
+            renderItem={renderCategoryItem}
+          />
         </View>
-      )}
+        
+        <Divider style={styles.divider} />
+        
+        {/* Results Count */}
+        <View style={styles.resultsCountContainer}>
+          <Text variant="bodyMedium">
+            {filteredServices.length} {t('services')}
+            {selectedCategory && ` - ${categories.find(cat => cat.id === selectedCategory)?.name}`}
+            {searchQuery && ` - "${searchQuery}"`}
+          </Text>
+        </View>
+        
+        {/* Services List */}
+        <View style={styles.servicesListWrapper}>
+          {filteredServices.length > 0 ? (
+            <FlatList
+              data={filteredServices}
+              renderItem={renderServiceItem}
+              keyExtractor={serviceKeyExtractor}
+              numColumns={2}
+              contentContainerStyle={styles.servicesListContainer}
+              removeClippedSubviews={Platform.OS === 'android'}
+              initialNumToRender={4}
+              maxToRenderPerBatch={8}
+              windowSize={11}
+            />
+          ) : (
+            <View style={styles.noResultsContainer}>
+              <Ionicons name="search-outline" size={48} color="#757575" />
+              <Text style={styles.noResultsText}>{t('no_results_found')}</Text>
+            </View>
+          )}
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
@@ -280,33 +301,58 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     margin: 16,
+    marginBottom: 2,
     borderRadius: 8,
     elevation: 2,
     backgroundColor: '#fff',
   },
+  contentContainer: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  categorySection: {
+    height: Platform.OS === 'ios' ? 80 : 70,
+    maxHeight: Platform.OS === 'ios' ? 80 : 70,
+    overflow: 'visible',
+    zIndex: 10,
+  },
   categoriesContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 12,
+    paddingTop: 0,
+    minHeight: 70,
   },
   categoryChip: {
     marginRight: 8,
     backgroundColor: '#E0E0E0',
+    height: Platform.OS === 'ios' ? 48 : 44,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 4,
   },
   selectedCategoryChip: {
     backgroundColor: '#344955',
   },
   categoryChipText: {
     color: '#232F34',
+    paddingBottom: Platform.OS === 'ios' ? 3 : 1,
+    fontSize: 14,
+    lineHeight: Platform.OS === 'ios' ? 18 : undefined,
   },
   selectedCategoryChipText: {
     color: '#FFFFFF',
   },
   divider: {
-    marginVertical: 8,
+    marginTop: 12,
+    marginBottom: 8,
   },
   resultsCountContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
+    marginTop: 8,
   },
   servicesListContainer: {
     padding: 8,
@@ -359,6 +405,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#757575',
     textAlign: 'center',
+  },
+  servicesListWrapper: {
+    flex: 1,
+    marginTop: 5,
   },
 });
 
