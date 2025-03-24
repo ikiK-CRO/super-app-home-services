@@ -219,12 +219,15 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   statusChip: {
+    height: 28,
+    paddingVertical: 4,
     alignSelf: 'flex-start',
     marginBottom: 16,
   },
   statusText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontSize: 12,
+    marginVertical: 2,
   },
   serviceName: {
     fontWeight: 'bold',

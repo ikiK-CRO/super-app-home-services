@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Dimensions } from 'react-native';
 import { TextInput, Button, Text, ActivityIndicator } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation';
@@ -71,7 +71,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             }
           />
           
-          <TouchableOpacity style={styles.forgotPassword}>
+          <TouchableOpacity 
+            style={styles.forgotPassword}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
             <Text variant="bodyMedium">{t('forgot_password')}</Text>
           </TouchableOpacity>
           
@@ -79,6 +82,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             mode="contained"
             onPress={handleLogin}
             style={styles.button}
+            contentStyle={styles.buttonContent}
             disabled={loading}
           >
             {loading ? (
@@ -100,6 +104,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
+const { height } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -109,10 +115,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
+    marginTop: Platform.OS === 'ios' ? height * 0.05 : height * 0.03,
   },
   logo: {
     width: 120,
@@ -144,6 +152,11 @@ const styles = StyleSheet.create({
   button: {
     padding: 5,
     borderRadius: 5,
+    height: 50,
+    justifyContent: 'center',
+  },
+  buttonContent: {
+    height: 50,
   },
   footer: {
     flexDirection: 'row',

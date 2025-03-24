@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Dimensions } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation';
@@ -7,6 +7,8 @@ import { useI18n } from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
+
+const { height } = Dimensions.get('window');
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useI18n();
@@ -39,8 +41,10 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>{t('register')}</Text>
+      <ScrollView contentContainerStyle={styles.scrollView}>
+        <View style={styles.logoContainer}>
+          {/* Logo component */}
+        </View>
         
         {error && <Text style={styles.error}>{error}</Text>}
         
@@ -108,12 +112,18 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
   },
-  content: {
+  scrollView: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+    marginTop: Platform.OS === 'ios' ? height * 0.03 : height * 0.02,
   },
   title: {
     fontSize: 24,
@@ -125,8 +135,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
-    marginTop: 8,
-    paddingVertical: 8,
+    padding: 5,
+    borderRadius: 5,
+    height: 50,
+    justifyContent: 'center',
+  },
+  buttonContent: {
+    height: 50,
   },
   footer: {
     flexDirection: 'row',

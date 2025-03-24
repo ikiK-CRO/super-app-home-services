@@ -29,12 +29,15 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow Super App to use your location to find services near you."
-        }
-      ]
-    ]
+      "expo-localization"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0f1ad691-f216-48e8-b77c-66330db54b60"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
-} 
+}

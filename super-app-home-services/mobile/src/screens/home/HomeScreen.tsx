@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, ScrollView, StyleSheet, FlatList, TouchableOpacity, Image, Platform } from 'react-native';
 import { Searchbar, Text, Card, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -235,6 +235,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
   },
   centered: {
     flex: 1,
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     padding: 16,
-    paddingTop: 20,
+    paddingTop: Platform.OS === 'ios' ? 20 : 16,
   },
   welcomeText: {
     fontWeight: 'bold',
@@ -255,6 +256,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 2,
     backgroundColor: '#fff',
+    height: 48,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -297,6 +299,8 @@ const styles = StyleSheet.create({
     marginRight: 16,
     marginBottom: 8,
     elevation: 3,
+    borderRadius: 8,
+    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,

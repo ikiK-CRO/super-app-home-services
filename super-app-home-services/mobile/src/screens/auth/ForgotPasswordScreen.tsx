@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Dimensions } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation';
 import { useI18n } from '../../i18n';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
+
+const { height } = Dimensions.get('window');
 
 const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useI18n();
@@ -95,9 +97,18 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollView: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: 'white',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+    marginTop: Platform.OS === 'ios' ? height * 0.03 : height * 0.02,
   },
   title: {
     fontSize: 24,
@@ -114,7 +125,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   button: {
-    paddingVertical: 8,
+    padding: 5,
+    borderRadius: 5,
+    height: 50,
+    justifyContent: 'center',
+    marginVertical: 20,
+  },
+  buttonContent: {
+    height: 50,
   },
   backButton: {
     marginTop: 16,
